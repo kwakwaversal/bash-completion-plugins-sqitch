@@ -1,0 +1,7 @@
+/Bash-Completion-Plugins-sqitch-*
+/.build
+/_build*
+/Build
+MYMETA.*
+!META.json
+/.prove
