@@ -11,8 +11,8 @@ use Test2::Tools::Compare qw/bag end etc hash item field is/;
 
 subtest empty_env_vars  => \&test_empty_env_vars;
 subtest candidates      => \&test_candidates;
-subtest command         => \&test_command;
-subtest subcommand      => \&test_subcommand;
+subtest command_only    => \&test_command_only;
+subtest subcommand_only => \&test_subcommand_only;
 
 sub test_empty_env_vars {
     # naughty - suppressing uninitialized warnings in Bash::Completion::Request
@@ -21,40 +21,49 @@ sub test_empty_env_vars {
     my $rx = Util->new(request => Request->new());
     is $rx->command    => '';
     is $rx->subcommand => '';
+    is $rx->args       => [];
 }
 
 sub test_candidates {
     my $cmd_opts = {
         deploy => [],
         status => [],
-        verify => [qw/--target --from-change --to-change --set/]
+        verify => [qw/--target --to-change --set/]
     };
 
-    my $rx = _get_rx({line => 'sqitch verify', subcommand_options => $cmd_opts});
-    is (
-        $rx->candidates,
-        bag {
-        }
-    );
+    # A command with no subcommand returns all subcommands
+    my $rx = _get_rx({line => 'sqitch', command_options => $cmd_opts});
+    is $rx->candidates => [keys %$cmd_opts];
+    is $rx->stripped_args => [], 'removed command from args';
 
-    my $rx = _get_rx({line => 'sqitch verify', subcommand_options => $cmd_opts});
+    # A partial subcommand returns all subcommands
+    $rx = _get_rx({line => 'sqitch ver', command_options => $cmd_opts});
+    is $rx->candidates => [keys %$cmd_opts];
+    is $rx->stripped_args => [], 'removed partial subcommand from args';
+
+    # A complete subcommand returns all subcommand options
+    $rx = _get_rx({line => 'sqitch verify', command_options => $cmd_opts});
+    is $rx->candidates => $cmd_opts->{verify};
+
+    # A subcommand options is removed from subcommand candidates
+    $rx = _get_rx({line => 'sqitch verify --target', command_options => $cmd_opts});
     is (
         $rx->candidates,
         bag {
-            item '--target';
+            item '--to-change';
             item '--set';
-            etc;
+            end;
         }
     );
 }
 
-sub test_command {
+sub test_command_only {
     my $rx = _get_rx({line => 'sqitch'});
     is $rx->command    => 'sqitch';
     is $rx->subcommand => '';
 }
 
-sub test_subcommand {
+sub test_subcommand_only {
     my $rx = _get_rx({line => 'sqitch verify'});
     is $rx->command    => 'sqitch';
     is $rx->subcommand => 'verify';

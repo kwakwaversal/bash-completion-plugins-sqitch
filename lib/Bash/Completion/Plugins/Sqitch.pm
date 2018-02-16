@@ -1,4 +1,4 @@
-package Bash::Completion::Plugins::sqitch;
+package Bash::Completion::Plugins::Sqitch;
 
 use strict;
 use warnings;
@@ -8,7 +8,11 @@ use Bash::Completion::Plugin::Sqitch::Util;
 
 our $VERSION = '0.01';
 
-my @sqitch_commands = qw/deploy revert verify/;
+my $cmd_opts = {
+    deploy => [],
+    status => [],
+    verify => [qw/--target --from-change --to-change --set/]
+};
 
 sub complete {
     my ($self, $r) = @_;
@@ -17,17 +21,18 @@ sub complete {
     my $word = $r->word;
 
     # extended request for the sqitch command
-    my $rx = Bash::Completion::Plugin::Sqitch::Util->new(request => $r);
+    my $rx = Bash::Completion::Plugin::Sqitch::Util->new(
+        request         => $r,
+        command_options => $cmd_opts
+    );
 
-    # my @options = ($ENV{COMP_POINT}, $ENV{COMP_LINE});
-
-    my @options = @sqitch_commands;
-    if ($rx->subcommand eq 'verify') {
-        @options = @sqitch_commands;
-    }
-
-    $r->candidates(prefix_match($r->word, @options));
+    $r->candidates(prefix_match($word, @{$rx->candidates}));
 }
+
+sub generate_bash_setup {
+  return q{complete -C 'bash-complete complete Sqitch -- '  sqitch}
+}
+# sub generate_bash_setup { return [qw(nospace)] }
 
 sub should_activate {
     return [grep { command_in_path($_) } ('sqitch')];
