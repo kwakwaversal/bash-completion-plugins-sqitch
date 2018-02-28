@@ -1,10 +1,6 @@
 requires 'App::Sqitch';
 requires 'Bash::Completion';
-
-# for Pg::Service
-requires 'Config::INI';
-requires 'Path::Tiny';
-requires 'Types::Path::Tiny';
+requires 'Pg::ServiceFile';
 
 on test => sub {
     requires 'aliased';
