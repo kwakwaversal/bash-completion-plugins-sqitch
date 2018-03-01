@@ -46,11 +46,11 @@ __END__
 
 =head1 NAME
 
-Bash::Completion::Plugins::Sqitch - based completion for Sqitch
+Bash::Completion::Plugins::Sqitch - bash completion for Sqitch
 
 =head1 SYNOPSIS
 
-    # will install App::Sqitch if it is not already installed
+    # Will install App::Sqitch if it is not already installed
     $ cpanm Bash::Completion::Plugins::Sqitch;
 
     # Add newly created Sqitch Bash::Completion plugin to session

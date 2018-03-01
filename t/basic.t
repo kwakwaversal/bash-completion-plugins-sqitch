@@ -1,6 +1,6 @@
 use strict;
 use Test::More;
-use Bash::Completion::Plugins::sqitch;
+use Bash::Completion::Plugins::Sqitch;
 
 # replace with the actual test
 ok 1;
