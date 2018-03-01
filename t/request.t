@@ -8,6 +8,10 @@ use Test2::Bundle::More;
 use Test2::Tools::Compare qw/bag end etc hash item field is/;
 
 # ABSTRACT: testing bash completion extended request class for Sqitch
+#
+# N.B., these tests use the "live" `App::Sqitch` commands, and the tests assume
+# the existence of certain subcommands. As such, these will fail if some of
+# them are ever removed.
 
 subtest empty_env_vars  => \&test_empty_env_vars;
 subtest candidates      => \&test_candidates;
@@ -16,8 +20,14 @@ subtest command_only    => \&test_command_only;
 subtest previous_arg    => \&test_previous_arg;
 subtest subcommand_only => \&test_subcommand_only;
 
+done_testing;
+
 sub test_empty_env_vars {
-    # naughty - suppressing uninitialized warnings in Bash::Completion::Request
+    # COMP_LINE and COMP_POINT are expected to be available for
+    # Bash::Completion::Request to work properly.
+
+    # Naughty - suppressing uninitialized warnings in Bash::Completion::Request
+    # when the COMP_* variables are not present.
     local $SIG{__WARN__} = sub{ };
 
     my $rx = Sqitch->new(request => Request->new());
@@ -27,14 +37,8 @@ sub test_empty_env_vars {
 }
 
 sub test_candidates {
-    my $cmd_opts = {
-        deploy => [],
-        status => [],
-        verify => [qw/--target --to-change --set/]
-    };
-
     # A command with no subcommand returns all subcommands
-    my $rx = _get_rx({line => 'sqitch'});
+    my $rx = _get_rx('sqitch');
     is (
         $rx->candidates,
         bag {
@@ -46,9 +50,9 @@ sub test_candidates {
     );
     is $rx->stripped_args => [], 'removed command from args';
 
-    # A partial subcommand returns all subcommands, but will be further
-    # filtered by bash autocomplete.
-    $rx = _get_rx({line => 'sqitch ver'});
+    # A partial subcommand *still* returns all subcommands, but you wont see
+    # them as they will be further filtered by bash/zsh autocomplete.
+    $rx = _get_rx('sqitch ver');
     is (
         $rx->candidates,
         bag {
@@ -60,8 +64,8 @@ sub test_candidates {
     );
     is $rx->stripped_args => [], 'removed partial subcommand from args';
 
-    # # A complete subcommand returns all subcommand options
-    $rx = _get_rx({line => 'sqitch verify'});
+    # A complete subcommand returns all subcommand options
+    $rx = _get_rx('sqitch verify');
     is (
         $rx->candidates,
         bag {
@@ -71,17 +75,21 @@ sub test_candidates {
             etc;
         }
     );
-    # is $rx->candidates => $cmd_opts->{verify};
     is $rx->stripped_args => [], 'removed command and subcommand';
 
-    # # A used subcommand option is removed from subcommand candidates
-    $rx = _get_rx({line => 'sqitch verify --set'});
+    # A used subcommand option is removed from further subcommand candidates
+    $rx = _get_rx('sqitch verify --set');
     ok !(grep {m/--set/} @{$rx->candidates});
-    is $rx->stripped_args => ['--set'], 'removed command and subcommand';
+    is $rx->stripped_args => ['--set'], 'contains subcommand args';
 }
 
 sub test_commands {
-    my $rx = _get_rx({line => 'sqitch'});
+    # `sqitch_commands` is the ArrayRef of commands obtained using
+    # `Module::Pluggable`.
+    #
+    # This test is kind of redundant as the candidates above essentially does
+    # the same thing.
+    my $rx = _get_rx('sqitch');
     is (
         $rx->sqitch_commands,
         bag {
@@ -95,32 +103,30 @@ sub test_commands {
 }
 
 sub test_command_only {
-    my $rx = _get_rx({line => 'sqitch'});
+    my $rx = _get_rx('sqitch');
     is $rx->command    => 'sqitch';
     is $rx->subcommand => '';
 }
 
 sub test_previous_arg {
-    my $rx = _get_rx({line => 'sqitch verify'});
+    my $rx = _get_rx('sqitch verify');
     is $rx->previous_arg => '', 'commands are not arguments';
 
-    $rx = _get_rx({line => 'sqitch verify --target'});
+    $rx = _get_rx('sqitch verify --target');
     is $rx->previous_arg => '--target';
 }
 
 sub test_subcommand_only {
-    my $rx = _get_rx({line => 'sqitch verify'});
+    my $rx = _get_rx('sqitch verify');
     is $rx->command    => 'sqitch';
     is $rx->subcommand => 'verify';
 }
 
 sub _get_rx {
-    my $opts = shift;
+    my $line = shift;
 
-    local $ENV{COMP_POINT} = delete $opts->{point} // length($opts->{line}) + 1;
-    local $ENV{COMP_LINE}  = delete $opts->{line};
+    local $ENV{COMP_POINT} = length($line) + 1;
+    local $ENV{COMP_LINE}  = $line;
 
-    return Sqitch->new(request => Request->new(), %{$opts});
+    return Sqitch->new(request => Request->new(), @_);
 }
-
-done_testing;
