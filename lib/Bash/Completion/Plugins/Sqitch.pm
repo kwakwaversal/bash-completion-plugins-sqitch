@@ -73,12 +73,12 @@ It works by using the C<App::Sqitch::Command::> namespace to list the C<sqitch>
 subcommands, and takes advantage of each subcommand providing the
 L<Getopt::Long> options as accessible methods. As such, this means that the
 auto-complete candidates should track new subcommands and options that are
-added or deprecated. Once downside to this is that some of the options that are
+added or deprecated. One downside to this is that some of the options that are
 included in the auto-complete candidate list aren't part of the official C<<
 $subcommand --help >> for a particular subcommand.
 
 N.B., Sqitch auto-completion works best if you're in the sqitch folder (the one
-with the C<sqitch.conf> and C<sqitch.plan> in it - which is generally how I use
+with the C<sqitch.conf> and C<sqitch.plan> in it) which is generally how I use
 it all the time anyway.
 
 =head1 EXTRAS
